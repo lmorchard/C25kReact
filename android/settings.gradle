@@ -1,0 +1,3 @@
+rootProject.name = 'C25kReact'
+
+include ':app'
