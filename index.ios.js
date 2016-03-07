@@ -35,7 +35,8 @@ const App = connect(state => {
     return (
       <Navigator
         initialRoute={{ id: 'home', title: state.title }}
-        renderScene={this.renderScene}
+        renderScene={(route, navigator) => this.renderScene(route, navigator)}
+        onWillFocus={(route) => this.onWillFocus(route)}
         navigationBar={
           <Navigator.NavigationBar style={barStyles}
                                    routeMapper={this.routeMapper} />
@@ -59,13 +60,19 @@ const App = connect(state => {
       return null;
     }
   },
+  onWillFocus(route) {
+    if (this.currentWorkoutViewRef) {
+      this.currentWorkoutRef.stopTimer();
+    }
+  },
   renderScene(route, navigator) {
     const { dispatch, state, workouts } = this.props;
     switch (route.id) {
       case 'workout':
         const progress = state.progress[route.workout.id] || 0;
         return <WorkoutView dispatch={dispatch} navigator={navigator}
-                            workout={route.workout} progress={progress} />;
+                            workout={route.workout} progress={progress}
+                            ref={c => this.currentWorkoutViewRef = c} />;
       default:
         return <HomeView dispatch={dispatch} navigator={navigator}
                          workouts={workouts} />;
