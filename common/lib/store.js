@@ -1,16 +1,46 @@
 import { createStore, applyMiddleware, combineReducers } from 'redux';
 
-const data = require('../../data/c25k.json');
+function prepareInitialState() {
+  const workoutData = require('../../data/c25k.json');
+
+  const state = {
+    title: workoutData.title,
+    currentView: 'home',
+    selectedWorkout: null,
+    workouts: workoutData.workouts,
+    progress: {}
+  };
+
+  // Pre-calculate start/end times for each workout event
+  state.workouts.forEach(workout => {
+    let time = 0;
+    workout.events.forEach(event => {
+      event.start = time;
+      time += event.duration * 1000;
+      event.end = time;
+    });
+  });
+
+  return state;
+};
+
+function title(state='', action) {
+  return state;
+}
+
+function currentView(state='', action) {
+  return state;
+}
+
+function selectedWorkout(state='', action) {
+  return state;
+}
+
+function workouts(state=[], action) {
+  return state;
+}
 
 const SET_WORKOUT_PROGRESS = 'SET_WORKOUT_PROGRESS';
-
-function title(state={}, action) {
-  return state;
-}
-
-function workouts(state={}, action) {
-  return state;
-}
 
 function progress(state={}, action) {
   const newState = Object.assign({}, state);
@@ -36,12 +66,16 @@ export const actions = {
   }
 }
 
-const reducers = combineReducers({
-  title, workouts, progress
-});
+export const store = createStore(
+  combineReducers({title, currentView, selectedWorkout, workouts, progress}),
+  prepareInitialState(),
+  applyMiddleware(logger)
+);
 
-export const store = applyMiddleware(logger)(createStore)(reducers, {
-  title: data.title,
-  workouts: data.workouts,
-  progress: {}
-});
+export const utils = {
+  calculateMaxWorkoutTime(workouts) {
+    return workouts.map(w =>
+      w.events.reduce((acc, ev) => acc + ev.duration, 0)
+    ).reduce((acc, curr) => Math.max(acc, curr), 0);
+  }
+};

@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 
 import { Provider, connect } from 'react-redux';
-import { actions, store } from './common/lib/store';
+import { actions, store, utils } from './common/lib/store';
 
 export const App = connect(state => {
   return { workouts: state.workouts };
@@ -18,49 +18,51 @@ export const App = connect(state => {
   }
 }));
 
-export const WorkoutList = ({ dispatch, workouts }) =>
-  <ul className="workouts">
-    {workouts.map((workout, index) =>
-      <li key={index}>
-        <p>{workout.title}</p>
-        <WorkoutBar workout={workout} />
-      </li>
-    )}
-  </ul>;
+export const WorkoutList = ({ dispatch, workouts }) => {
 
-const WorkoutBar = ({ dispatch, workout }) => {
-  const totalWidth = 400;
-  const totalTime = 2400;
-  //const totalTime = workout.events.map(e => e.duration)
-  //  .reduce((prev, curr) => prev + curr, 0);
-  const widthRatio = totalWidth / totalTime;
+  // Calculate the total duration of the longest workout.
+  const maxWorkoutTime = utils.calculateMaxWorkoutTime(workouts);
 
-  const style = {
-    display: 'block',
-    width: 600,
-    height: 25
-  };
+  // Calculate width of a second with respect to total width of screen.
+  const barWidth = 400; //
+  const widthRatio = barWidth / maxWorkoutTime;
+
   return (
-    <div className="workoutBar" style={style}>
-      {workout.events.map((event, index) => {
-        const segmentStyle = {
+    <ul className="workouts">
+      {workouts.map((workout, index) =>
+        <li key={index}>
+          <p>{workout.title}</p>
+          <WorkoutBar workout={workout}
+                      barHeight={40} barWidth={barWidth}
+                      widthRatio={widthRatio} />
+        </li>
+      )}
+    </ul>
+  );
+};
+
+const WorkoutBar = ({ dispatch, workout, barHeight, barWidth, widthRatio }) =>
+  <div style={{
+        display: 'block',
+        width: barWidth,
+        height: barHeight }}>
+    {workout.events.map((ev, index) =>
+      <span key={index}
+        title={ev.duration + ' seconds'}
+        style={{
           display: 'block',
           float: 'left',
-          height: style.height,
-          width: event.duration * widthRatio,
+          height: barHeight,
+          width: ev.duration * widthRatio,
           backgroundColor:  {
             'warmup': '#2F4F4F',
             'walk': '#006400',
             'run': '#228B22',
             'cooldown': '#2F4F4F'
-          }[event.type],
-        }
-        const segmentTitle = event.duration + ' seconds';
-        return <span key={index} style={segmentStyle} title={segmentTitle}></span>;
-      })}
-    </div>
-  );
-};
+          }[ev.type]
+        }} />
+    )}
+  </div>
 
 ReactDOM.render(
   <Provider store={store}><App /></Provider>,
