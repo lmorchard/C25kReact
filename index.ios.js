@@ -15,13 +15,15 @@ import React, {
   ScrollView,
   TabBarIOS
 } from 'react-native';
+import Dimensions from 'Dimensions';
 
 var Icon = require('react-native-vector-icons/Ionicons');
 
 import { Provider, connect } from 'react-redux';
-import { actions, store, utils } from './common/lib/store';
 
-import Dimensions from 'Dimensions';
+import { actions, store, utils } from './common/lib/store';
+import { WorkoutTimerMixin } from './common/lib/mixins';
+import { Clock, WorkoutBar, WorkoutList } from './common/lib/components-native';
 
 const App = connect(state => {
   return {
@@ -62,7 +64,7 @@ const App = connect(state => {
   },
   onWillFocus(route) {
     if (this.currentWorkoutViewRef) {
-      this.currentWorkoutRef.stopTimer();
+      this.currentWorkoutViewRef.stopTimer();
     }
   },
   renderScene(route, navigator) {
@@ -95,15 +97,15 @@ class HomeView extends Component {
   }
 }
 
-class WorkoutView extends Component {
+export const WorkoutView = React.createClass({
+  mixins: [WorkoutTimerMixin],
 
-  constructor(props) {
-    super(props);
-    this.state = {
+  getInitialState() {
+    return {
       running: false,
       progress: this.props.progress
     };
-  }
+  },
 
   render() {
     const { navigator, workout } = this.props;
@@ -123,186 +125,55 @@ class WorkoutView extends Component {
       width: Dimensions.get('window').width,
       height: Dimensions.get('window').height,
       marginTop: 50,
+      flex: 1,
+      flexDirection: 'column',
+      alignSelf: 'stretch',
+      alignItems: 'center',
+      justifyContent: 'center'
+    };
+
+    const eventTitles = {
+      'warmup': 'Warm Up',
+      'walk': 'Walking',
+      'run': 'Running',
+      'cooldown': 'Cool Down'
     };
 
     return (
       <View style={style}>
 
-        <WorkoutBar workout={workout}
-                    barHeight={40} barWidth={barWidth}
+        <WorkoutBar workout={workout} currEventIdx={currEventIdx}
+                    barHeight={80} barWidth={barWidth}
                     widthRatio={widthRatio} />
 
-        <Text>{workout.title}</Text>
-
-        <Clock title="Elapsed" time={progress} countdown={false} />
-        <Clock title={currEvent.type} time={currEvent.end - progress} countdown={false} />
-        <Clock title="Remaining" time={totalDuration - progress} countdown={true} />
-
-        <Text>{this.state.running ? 'Running' : 'Stopped'}</Text>
-
-        <TouchableOpacity onPress={() => this.startTimer()}><Text>Start</Text></TouchableOpacity>
-        <TouchableOpacity onPress={() => this.stopTimer()}><Text>Pause</Text></TouchableOpacity>
-        <TouchableOpacity onPress={() => this.resetTimer()}><Text>Reset</Text></TouchableOpacity>
-        <TouchableOpacity onPress={() => this.prevEvent()}><Text>Prev</Text></TouchableOpacity>
-        <TouchableOpacity onPress={() => this.nextEvent()}><Text>Next</Text></TouchableOpacity>
-
-      </View>
-    );
-  }
-
-  componentDidMount() {
-    this.lastTick = Date.now();
-    this.timer = setInterval(() => this.tick(), 250);
-  }
-
-  componentWillUnmount() {
-    clearInterval(this.timer);
-    this.stopTimer();
-  }
-
-  tick() {
-    const { dispatch, workout } = this.props;
-
-    const now = Date.now();
-    const delta = now - this.lastTick;
-    this.lastTick = now;
-
-    if (this.state.running) {
-      const newProgress = this.state.progress + delta;
-      const lastEvent = workout.events[workout.events.length - 1];
-      if (newProgress >= lastEvent.end) {
-        this.setState({running: false});
-      }
-      this.setProgress(newProgress);
-    }
-  }
-
-  setProgress(value) {
-    const { dispatch, workout } = this.props;
-    this.setState({progress: value});
-    dispatch(actions.setWorkoutProgress(workout.id, value));
-  }
-
-  resetTimer() {
-    this.setState({running: false});
-    this.setProgress(0);
-  }
-
-  startTimer() {
-    this.setState({running: true});
-  }
-
-  stopTimer() {
-    this.setState({running: false});
-  }
-
-  prevEvent() {
-    const { workout } = this.props;
-    const newIdx = this.findCurrentEventIndex() - 1;
-    if (newIdx >= 0) {
-      this.setProgress(workout.events[newIdx].start);
-    }
-  }
-
-  nextEvent() {
-    const { workout } = this.props;
-    const newIdx = this.findCurrentEventIndex() + 1;
-    if (newIdx < workout.events.length) {
-      this.setProgress(workout.events[newIdx].start);
-    }
-  }
-
-  findCurrentEventIndex() {
-    const { workout } = this.props;
-    const { progress } = this.state;
-    for (var idx = 0; idx < workout.events.length; idx++) {
-      const ev = workout.events[idx];
-      if (progress >= ev.start && progress < ev.end) { return idx; }
-    }
-    return workout.events.length - 1;
-  }
-
-  getCurrentRoute(navigator) {
-    const { workout } = this.props;
-    return navigator.state.routeStack[navigator.state.presentedIndex];
-  }
-
-}
-
-class Clock extends Component {
-  pad(value, length) {
-    var padded = '' + '000' + parseInt(value);
-    return padded.substr(padded.length - length);
-  }
-  render() {
-    const { dispatch, title, time, countdown } = this.props;
-    const roundedTime = Math[countdown ? 'ceil' : 'floor'](time / 1000);
-    const minutes = this.pad(roundedTime / 60, 2);
-    const seconds = this.pad(roundedTime - (minutes * 60), 2);
-    return (
-      <View>
-        <Text>{title}</Text>
-        <Text>{minutes}:{seconds}</Text>
-      </View>
-    );
-  }
-}
-
-const WorkoutList = ({ dispatch, navigator, workouts }) => {
-  // Calculate the total duration of the longest workout.
-  const maxWorkoutTime = utils.calculateMaxWorkoutTime(workouts);
-
-  // Calculate width of a second with respect to total width of screen.
-  const barWidth = Dimensions.get('window').width;
-  const widthRatio = barWidth / maxWorkoutTime;
-
-  const style = { marginTop: 60 };
-  const itemStyle = { marginTop: 5, marginBottom: 5 };
-  const itemTextStyle = { textAlign: 'center', fontSize: 15 };
-
-  return (
-    <ScrollView style={style} showsVerticalScrollIndicator={true}>
-      {workouts.map((workout, index) =>
-        <TouchableHighlight key={index}
-            underlayColor="#ddd"
-            onPress={() => navigator.push({ id: 'workout',
-                                            workout: workout,
-                                            title: workout.title }) }>
-          <View style={itemStyle}>
-            <Text style={itemTextStyle}>{workout.title}</Text>
-            <WorkoutBar workout={workout}
-                        barHeight={40} barWidth={barWidth}
-                        widthRatio={widthRatio} />
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center',
+                       justifyContent: 'space-around' }}>
+          <Clock title="Elapsed" countdown={false} time={progress} fontSize="15" />
+          <View style={{
+              backgroundColor: this.state.running ? '#99ff99' : '#ff9999'
+            }}>
+            <Clock title={eventTitles[currEvent.type]} countdown={false}
+                   time={currEvent.end - progress} fontSize="25" />
           </View>
-        </TouchableHighlight>
-      )}
-    </ScrollView>
-  );
-}
+          <Clock title="Remaining" countdown={true}
+                 time={totalDuration - progress} fontSize="15" />
+        </View>
 
-const WorkoutBar = ({ workout, barHeight, barWidth, widthRatio }) =>
-  <View style={{
-      width: barWidth,
-      height: barHeight,
-      flex: 1,
-      flexDirection: 'row',
-      flexWrap: 'nowrap',
-      alignSelf: 'center',
-      alignItems: 'center',
-      justifyContent: 'center' }}>
-    {workout.events.map((ev, index) =>
-      <View key={index} style={{
-        width: Math.floor(ev.duration * widthRatio),
-        height: barHeight,
-        backgroundColor: {
-          'warmup': '#2F4F4F',
-          'walk': '#006400',
-          'run': '#228B22',
-          'cooldown': '#2F4F4F'
-        }[ev.type]
-      }} />
-    )}
-  </View>;
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center',
+                       justifyContent: 'space-around' }}>
+          <Icon.Button size={30} name="skip-backward" onPress={() => this.prevEvent()}></Icon.Button>
+          { this.state.running ?
+            <Icon.Button size={30} name="pause" onPress={() => this.stopTimer()}></Icon.Button> :
+            <Icon.Button size={30} name="ios-play" onPress={() => this.startTimer()}></Icon.Button> }
+          <Icon.Button size={30} name="refresh" onPress={() => this.resetTimer()}></Icon.Button>
+          <Icon.Button size={30} name="skip-forward" onPress={() => this.nextEvent()}></Icon.Button>
+        </View>
+
+      </View>
+    );
+  }
+
+});
 
 // The registry expects a component, so let's return a function component
 AppRegistry.registerComponent('C25kReact', () => () =>  // (yo dawg)
