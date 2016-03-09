@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Title</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+      body { font-family: 'Droid Serif'; }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: normal;
+        margin-top: 0.125em;
+        margin-bottom: 0.125em;
+      }
+      .inverse {
+        background: #272822;
+        color: #777872;
+        text-shadow: 0 0 20px #333;
+      }
+      .inverse h1, .inverse h2 {
+        color: #f3f3f3;
+        line-height: 0.8em;
+      }
+      .footnote {
+        position: absolute;
+        bottom: 3em;
+        text-align: right;
+      }
+      .red { color: #fa0000; }
+      ul, ol { margin-top: 2em; margin-bottom: 2em; }
+      ul li, ol li { margin-bottom: 1em; }
+      .remark-code {
+        font-family: 'Ubuntu Mono';
+        font-size: 16px;
+        line-height: 1.3em;
+      }
+      .halfCol { float: left; width: 50%; }
+
+      #slide-title h2 { margin-top: 2em; }
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+name: title
+class: titleslide, center, middle, inverse
+
+# Intro to React Native
+## Les Orchard (me@lmorchard.com)
+
+---
+
+name: agenda
+
+# Agenda
+
+1. My background
+2. React in a nutshell
+3. React goes native
+4. Native dev for web devs
+5. Code sharing
+6. Extensibility
+7. Incremental use
+8. THE FUTURE!!1!
+9. Quick demos
+
+---
+
+name: background
+background-image: url()
+
+# My background
+
+* I work for the Mozilla Corporation
+* I've been a web developer since 1993
+* I love the web (though it might be Stockholm Syndrome)
+* I've reached "Hello World" level in iOS & Android development
+* I built a multi-platform app from scratch last weekend .red[*]
+
+---
+template: background
+
+.footnote[.red[*] okay, it's a terrible app, but I don't think that's React Native's fault]
+
+---
+
+layout: true
+
+# React in a nutshell
+
+---
+
+name: react-before
+
+## Before React
+
+* DHTML - change web pages after they've loaded with JavaScript maybe!
+* DOM API - awkwardly verbose API to manipulate web pages
+* jQuery - convenient direct web page DOM manipulation
+* YUI, Dojo, MooTools - let's wrap DOM things up into components!
+* Backbone - models with change events & data binding
+* Ember & Angular - let's make entire client-side MVC stacks!
+
+...and many more frameworks & libraries, but these are the basic themes.
+
+???
+
+* DOM is awkward - but it was a standard! and it worked across browsers! kinda!
+
+* jQuery made the DOM so much nicer to work with, offering a fluid API with
+lots of sugar
+
+* Backbone offered classes and models and events, oh my!
+
+---
+
+name: react-after
+
+## Some crazy ideas from React
+
+* No direct DOM manipulation
+* Unidirectional data flow
+* No more handling change events or data bindings
+* Re-render everything when anything changes
+* Make re-renders cheap
+* Simple DOM-based component model
+* HTML and CSS all expressed in JavaScript
+* Embrace ES6 and markup-in-JS (JSX)
+
+---
+
+name: react-component-stateless
+
+## Component model: Stateless functions
+
+```javascript
+import ReactDOM from 'react-dom';
+
+const HelloWorld = ({ displayName, greetingMessage, textColor }) =>
+  <div style={{ color: textColor }}>
+    <h1>Hello, {displayName}!</h1>
+    <h2>{greetingMessage}</h2>
+    <p>We hope you enjoy your stay!</p>
+  </div>
+
+ReactDOM.render(
+  <HelloWorld displayName="New Friend"
+              greetingMessage="Welcome!"
+              textColor="green" />,
+  document.getElementById('app')
+);
+```
+
+---
+
+name: react-component-createclass
+
+## Component model: React.createClass()
+
+```javascript
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+const Counter = React.createClass({
+  getInitialState() {
+    return { count: this.props.startAt || 0 }
+  },
+  increment() {
+    this.setState({ count: this.state.count + 1 });
+  },
+  render() {
+    return (
+      <div class="counter">
+        <span>Count: {this.state.count}</span>
+        <button onPress={this.increment}>Increment</button>
+      </div>
+    );
+  }
+});
+
+ReactDOM.render( <Counter startAt="10" />, document.getElementById('app') );
+```
+
+---
+
+name: current
+
+## Component model: ES6 classes
+
+```javascript
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+class Counter extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { count: this.props.startAt }
+  }
+  increment() {
+    this.setState({ count: this.state.count + 1 });
+  }
+  render() {
+    return (
+      <div class="counter">
+        <span>Count: {this.state.count}</span>
+        <button onPress={() => this.increment() }>Increment</button>
+      </div>
+    );
+  }
+});
+
+ReactDOM.render( <Counter startAt="10" />, document.getElementById('app') );
+```
+
+---
+
+name: react-component-api
+
+## Component API
+
+.halfCol[
+* displayName
+* mixins
+* propTypes
+* statics
+* render()
+* getInitialState()
+* getDefaultProps()
+]
+.halfCol[
+* componentWillMount()
+* componentDidMount()
+* componentWillReceiveProps()
+* shouldComponentUpdate()
+* componentWillUpdate()
+* componentDidUpdate()
+* componentWillUnmount()
+]
+
+---
+
+layout: true
+
+# React goes native
+
+---
+
+* Build a native shell app that glues everything together
+
+* Orchestrate everything with JavaScript via messaging bridges
+
+* Wrap native libraries with JS interfaces
+
+* Wrap native platform components as React components
+
+* Implement a minimal DOM for composition
+
+* Support just enough CSS for web-like layout
+
+* The app code is a JavaScript bundle
+
+---
+
+## Component model: Stateless function
+
+```javascript
+import React, { AppRegistry, Text, View } from 'react-native';
+
+const HelloWorld = ({ displayName, greetingMessage, textColor }) =>
+  <View>
+    <Text style={{ color: textColor, fontSize: 30 }}>Hello, {displayName}!</Text>
+    <Text style={{ color: textColor, fontSize: 20 }}>{greetingMessage}</Text>
+    <Text style={{ color: textColor }}>We hope you enjoy your stay!</Text>
+  </View>
+
+AppRegistry.registerComponent('MyNativeApp', () => () =>  // (yo dawg)
+  <HelloWorld displayName="New Friend"
+              greetingMessage="Welcome!"
+              textColor="green" />);
+```
+
+...and React.createClass() and ES6 Classes work the same way.
+
+---
+
+## Native dev for web devs
+
+
+
+---
+
+layout: false
+
+# Code sharing
+
+---
+
+# Extensibility
+
+* Wrap native components & libraries in React Native bridge code
+
+---
+
+# Incremental use
+
+* It's not all-or-nothing
+* Embed React Native as a component in a larger app
+* Extend React Native with more native components
+
+---
+
+# THE FUTURE!!1!
+
+* Isomorphic apps
+* Automatic remote updates
+* Component hot-reloading
+
+---
+
+layout: true
+
+# Quick demos
+
+---
+
+## Couch-to-5k Multi-Platform
+
+---
+
+# Thank you!
+
+    </textarea>
+    <script src="https://gnab.github.io/remark/downloads/remark-latest.min.js">
+    </script>
+    <script>
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>
